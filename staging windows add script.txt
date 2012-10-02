@@ -1,0 +1,56 @@
+﻿#add-pssnapin Microsoft.DataProtectionManager.PowerShell
+if((Get-PSSnapIn -Name "Microsoft.DataProtectionManager.PowerShell" -ErrorAction SilentlyContinue) -eq $null)
+{
+  
+  Add-PSSnapIn "Microsoft.DataProtectionManager.PowerShell"
+  ECHO "aDDED"
+}
+
+
+#SET PARAMETERS
+$PGNAME = "China"
+$DPMServer = "dpm-austin"
+$Client = "WIN-test"
+
+
+#SOME PREPROCESING - getting protection info 
+$pg = Get-ProtectionGroup -DPMServerName $DPMServer | Where-Object {$_.FriendlyName.ToUpper() -eq $PGNAME.ToUpper()}
+$Modpg = Get-ModifiableProtectionGroup -ProtectionGroup $pg
+$ps = Get-ProductionServer -DPMServerName dpm-austin 
+$machine = $ps | Where-Object {$_.MachineName.ToUpper() -eq $Client.ToUpper()}
+$machine
+ 
+$dds = Get-Datasource -ProductionServer $machine
+$dds
+
+
+#STEP: 1  Select group members
+
+
+$ds=$dds | Where-Object {$_.Name -eq "C:\"-or $_.Name -contains "System Protection" -or $_.Name -eq "D:\" }
+$ds
+
+
+Add-ChildDataSource -ProtectionGroup $Modpg -ChildDataSource $ds
+
+
+
+
+
+
+
+
+
+
+
+
+Get-DatasourceDiskAllocation -Datasource $ds[0]
+Set-DatasourceDiskAllocation -Datasource $ds[0] -ProtectionGroup $Modpg
+Get-DatasourceDiskAllocation -Datasource $ds[1]
+Set-DatasourceDiskAllocation -Datasource $ds[1] -ProtectionGroup $Modpg
+Get-DatasourceDiskAllocation -Datasource $ds[2]
+Set-DatasourceDiskAllocation -Datasource $ds[2] -ProtectionGroup $Modpg
+
+
+Set-ReplicaCreationMethod -ProtectionGroup $Modpg -NOW
+Set-ProtectionGroup -ProtectionGroup $Modpg
